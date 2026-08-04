@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin - Sugar & Sage</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+<style>
+:root{--pink:#F7C6D0;--pink-dark:#E89BAD;--cream:#FFF9FA;--charcoal:#2D3436}
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:Inter,sans-serif;background:var(--cream);color:var(--charcoal);padding:20px}
+h1{font-family:Playfair Display,serif;font-size:28px;margin-bottom:6px}
+.sub{color:#888;margin-bottom:24px}
+.card{background:white;border-radius:14px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,.06);margin-bottom:20px}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid #e8d0d6;border-radius:8px;margin-top:6px;font-size:14px}
+label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-top:14px;display:block}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.btn{background:var(--pink-dark);color:white;border:none;padding:11px 18px;border-radius:9px;font-weight:600;cursor:pointer}
+.btn-sm{padding:7px 12px;font-size:12px}
+.btn-dark{background:var(--charcoal)}
+.btn-outline{background:white;color:var(--charcoal);border:1px solid #ddd}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+.prod{background:white;border-radius:12px;overflow:hidden;border:1px solid #f0e0e4}
+.prod img{width:100%;height:180px;object-fit:cover;background:#FDEBF1}
+.prod-body{padding:12px}
+.actions{display:flex;gap:6px;margin-top:8px}
+</style>
+</head>
+<body>
+<h1>Sugar & Sage — Admin</h1>
+<p class="sub">Add / Edit stock here. It saves to your browser and shows on sugarandsage.co.za instantly after you deploy the same file. To make it live for everyone, export and upload.</p>
+
+<div class="card">
+  <h3 id="formTitle">Add New Product</h3>
+  <div class="row">
+    <div><label>Name</label><input id="name" placeholder="Sugarandsage #004 Velvet Plum"></div>
+    <div><label>Category</label><select id="category"><option>Fragrance</option><option>Skincare</option><option>Body Care</option><option>Hair Care</option><option>Bath & Body</option><option>Makeup</option><option>Wellness</option><option>Gift Sets</option></select></div>
+  </div>
+  <div class="row">
+    <div><label>Price (R)</label><input id="price" type="number" placeholder="149"></div>
+    <div><label>Stock Qty</label><input id="stock" type="number" placeholder="50"></div>
+  </div>
+  <label>Image URL (or leave empty for placeholder)</label><input id="image" placeholder="https://... or leave empty">
+  <label>Description</label><textarea id="desc" rows="2" placeholder="Velvet plum and dark berries - 50ml"></textarea>
+  <div style="margin-top:16px;display:flex;gap:10px">
+    <button class="btn" onclick="saveProduct()">Save Product</button>
+    <button class="btn btn-outline" onclick="resetForm()">Cancel</button>
+    <input type="hidden" id="editId">
+  </div>
+</div>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <h3>Current Stock (<span id="count">0</span>)</h3>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-sm btn-outline" onclick="exportData()">Export Backup</button>
+      <button class="btn btn-sm btn-dark" onclick="clearAll()">Clear All</button>
+      <a href="index.html" class="btn btn-sm btn-outline" style="text-decoration:none">← Back to Store</a>
+    </div>
+  </div>
+  <div class="grid" id="list"></div>
+</div>
+
+<script>
+let products = [];
+function load(){const s=localStorage.getItem('ss_products');if(s){try{products=JSON.parse(s);}catch{}} if(products.length===0){products=[
+  {id:'p004',name:'Sugarandsage #004 Velvet Plum',category:'Fragrance',price:149,stock:50,status:'Active',image:'https://images.unsplash.com/photo-1594035910387-fea47794261f?w=600&h=600&fit=crop',description:'Velvet plum and dark berries'},
+  {id:'p002',name:'Sugarandsage #002 Coconut Blossom',category:'Fragrance',price:149,stock:50,status:'Active',image:'https://images.unsplash.com/photo-1541643600914-78b084683601?w=600&h=600&fit=crop',description:'Coconut blossom and vanilla'},
+  {id:'p006',name:'Sugarandsage #006 Vanilla Sun',category:'Fragrance',price:149,stock:50,status:'Active',image:'https://images.unsplash.com/photo-1593487568720-3eab4c81be82?w=600&h=600&fit=crop',description:'Warm vanilla and citrus'},
+  {id:'p005',name:'Sugarandsage #005 Sugared Velvit',category:'Fragrance',price:149,stock:50,status:'Active',image:'https://images.unsplash.com/photo-1593487568720-3eab4c81be82?w=600&h=600&fit=crop',description:'Velvet plum and sugared violet'}
+]; save();} render();}
+function save(){localStorage.setItem('ss_products',JSON.stringify(products));}
+function render(){document.getElementById('count').textContent=products.length;document.getElementById('list').innerHTML=products.map(p=>`<div class="prod"><img src="${p.image}" onerror="this.src='https://placehold.co/600x600/FDEBF1/E89BAD?text='+encodeURIComponent(p.name)"><div class="prod-body"><div style="font-size:11px;color:#E89BAD;font-weight:800;text-transform:uppercase">${p.category}</div><div style="font-weight:600;margin:4px 0">${p.name}</div><div style="font-size:13px;color:#666">R${p.price} • Stock: ${p.stock} • ${p.status}</div><div class="actions"><button class="btn btn-sm" onclick="edit('${p.id}')">Edit</button><button class="btn btn-sm btn-outline" onclick="toggleStatus('${p.id}')">${p.status==='Active'?'Hide':'Show'}</button><button class="btn btn-sm btn-dark" onclick="removeP('${p.id}')">Delete</button></div></div></div>`).join('');}
+function saveProduct(){
+  const id=document.getElementById('editId').value || 'p'+Date.now();
+  const p={id, name:document.getElementById('name').value||'Unnamed', category:document.getElementById('category').value, price:parseInt(document.getElementById('price').value||0), stock:parseInt(document.getElementById('stock').value||0), image:document.getElementById('image').value||`https://images.unsplash.com/photo-1594035910387-fea47794261f?w=600&h=600&fit=crop`, description:document.getElementById('desc').value||'', status:'Active'};
+  const idx=products.findIndex(x=>x.id===id); if(idx>=0) products[idx]={...products[idx],...p}; else products.push(p);
+  save(); render(); resetForm(); alert('Saved! Now go to your store - it will show immediately on your device.');
+}
+function edit(id){const p=products.find(x=>x.id===id);document.getElementById('editId').value=p.id;document.getElementById('name').value=p.name;document.getElementById('category').value=p.category;document.getElementById('price').value=p.price;document.getElementById('stock').value=p.stock;document.getElementById('image').value=p.image;document.getElementById('desc').value=p.description;document.getElementById('formTitle').textContent='Edit: '+p.name;window.scrollTo({top:0,behavior:'smooth'});}
+function removeP(id){if(!confirm('Delete this product?'))return;products=products.filter(x=>x.id!==id);save();render();}
+function toggleStatus(id){const p=products.find(x=>x.id===id);p.status=p.status==='Active'?'Inactive':'Active';save();render();}
+function resetForm(){document.getElementById('editId').value='';document.getElementById('name').value='';document.getElementById('price').value='';document.getElementById('stock').value='';document.getElementById('image').value='';document.getElementById('desc').value='';document.getElementById('formTitle').textContent='Add New Product';}
+function exportData(){const data=JSON.stringify(products,null,2);const blob=new Blob([data],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='sugarandsage-products.json';a.click();}
+function clearAll(){if(!confirm('Delete ALL products?'))return;products=[];save();render();}
+load();
+</script>
+</body>
+</html>
