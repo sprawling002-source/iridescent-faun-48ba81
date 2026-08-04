@@ -1,0 +1,7 @@
+# FIX for Netlify - put this file in your /public folder or root as "_redirects"
+# This ensures images and assets are not redirected to index.html
+
+/images/* /images/:splat 200
+/assets/* /assets/:splat 200
+/.netlify/functions/* /.netlify/functions/:splat 200
+/* /index.html 200

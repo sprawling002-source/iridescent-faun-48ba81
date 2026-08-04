@@ -28,7 +28,9 @@ header{background:var(--white);border-bottom:1px solid #f0e6e9;position:sticky;t
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:24px;margin-top:20px}
 .card{background:white;border-radius:18px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06);transition:.25s;border:1px solid #f9eef2}
 .card:hover{transform:translateY(-5px);box-shadow:0 12px 24px rgba(247,198,208,.3)}
-.card-img{width:100%;height:260px;object-fit:cover;background:var(--pink-light);display:block}
+.card-img-wrap{width:100%;height:260px;background:var(--pink-light);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.card-img{width:100%;height:100%;object-fit:cover;display:block}
+.card-img-fallback{font-family:"Playfair Display",serif;font-size:48px;color:var(--pink-dark);font-weight:600;opacity:0.8}
 .card-body{padding:18px}
 .card-cat{font-size:11px;color:var(--pink-dark);text-transform:uppercase;letter-spacing:.6px;font-weight:800}
 .card-name{font-size:17px;margin:6px 0 4px;font-weight:600;line-height:1.3}
@@ -63,28 +65,56 @@ footer{text-align:center;padding:32px;color:#888;font-size:13px;background:white
 <div class="overlay" id="overlay" onclick="toggleCart()"></div>
 <footer>© 2026 Sugar & Sage — Handcrafted in Cape Town 🌸</footer>
 <script>
-let products=[];let cart=JSON.parse(localStorage.getItem('ss_cart')||'[]');let activeCat='All';
+// FIXED: Products are now hardcoded so they look the same in EVERY browser.
+// No more localStorage product list that causes Edge vs Chrome differences.
+// If admin override exists (from admin_FIXED.html), use it for owner preview, otherwise use live list.
+const LIVE_PRODUCTS = [
+  {id:'p004',name:'Sugarandsage #004 Velvet Plum',category:'Fragrance',price:149,stock:50,image:'https://images.unsplash.com/photo-1594035910387-fea47794261f?w=600&h=600&fit=crop&auto=format',description:'Velvet plum and dark berries - 50ml', fallback:'Velvet Plum'},
+  {id:'p002',name:'Sugarandsage #002 Coconut Blossom',category:'Fragrance',price:149,stock:50,image:'https://images.unsplash.com/photo-1541643600914-78b084683601?w=600&h=600&fit=crop&auto=format',description:'Coconut blossom and vanilla - 50ml', fallback:'Coconut'},
+  {id:'p006',name:'Sugarandsage #006 Vanilla Sun',category:'Fragrance',price:149,stock:50,image:'https://images.unsplash.com/photo-1593487568720-3eab4c81be82?w=600&h=600&fit=crop&auto=format',description:'Warm vanilla and citrus - 50ml', fallback:'Vanilla'},
+  {id:'p005',name:'Sugarandsage #005 Sugared Velvit',category:'Fragrance',price:149,stock:50,image:'https://images.unsplash.com/photo-1615529151169-7b1ff50dc7f2?w=600&h=600&fit=crop&auto=format',description:'Velvet plum and sugared violet - 50ml', fallback:'Sugared'},
+  {id:'p001',name:'Sugarandsage #001 Wild Fig',category:'Fragrance',price:149,stock:50,image:'https://images.unsplash.com/photo-1543422655-ac1c6ca99310?w=600&h=600&fit=crop&auto=format',description:'Wild fig and sandalwood - 50ml', fallback:'Wild Fig'},
+  {id:'p003',name:'Sugarandsage #003 Fynbos Dawn',category:'Fragrance',price:149,stock:50,image:'https://images.unsplash.com/photo-1523293182086-7651a899d37f?w=600&h=600&fit=crop&auto=format',description:'Fynbos and morning dew - 50ml', fallback:'Fynbos'},
+  {id:'p007',name:'Rooibos Glow Face Mask',category:'Skincare',price:185,stock:30,image:'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=600&h=600&fit=crop&auto=format',description:'Antioxidant rooibos clay mask with honeybush and kaolin', fallback:'Mask'},
+  {id:'p008',name:'Vanilla Bean Sugar Scrub',category:'Body Care',price:245,stock:20,image:'https://images.unsplash.com/photo-1600857544200-b2f666a9a2ec?w=600&h=600&fit=crop&auto=format',description:'Exfoliating raw sugar with Madagascar vanilla and shea', fallback:'Vanilla'},
+  {id:'p009',name:'Sage & Sea Salt Candle',category:'Bath & Body',price:195,stock:25,image:'https://images.unsplash.com/photo-1602874801027-dee26ffa1d31?w=600&h=600&fit=crop&auto=format',description:'Hand-poured soy wax with wild sage and Atlantic sea salt', fallback:'Sage'},
+  {id:'p010',name:'Wild Honey & Oat Soap',category:'Bath & Body',price:85,stock:40,image:'https://images.unsplash.com/photo-1600857544200-b2f666a9a2ec?w=600&h=600&fit=crop&auto=format',description:'Cold-processed with fynbos honey and colloidal oats', fallback:'Honey'}
+];
+
+// Load admin preview if exists (owner only), else use LIVE_PRODUCTS for all customers
+let adminOverride = null;
+try{ const saved = localStorage.getItem('ss_admin_products'); if(saved) adminOverride = JSON.parse(saved); }catch(e){}
+const products = (adminOverride && adminOverride.length>0) ? adminOverride : LIVE_PRODUCTS;
+
+let cart=JSON.parse(localStorage.getItem('ss_cart')||'[]');
+let activeCat='All';
 const categories=['All','Skincare','Body Care','Hair Care','Bath & Body','Fragrance','Makeup','Wellness','Gift Sets'];
-function loadProducts(){ try{
-  const stored=localStorage.getItem('ss_products');
-  if(stored){try{const p=JSON.parse(stored).filter(x=>x.status==='Active');if(p.length>0){products=p;return;}}catch{}}
-  products=[
-    {id:'p004',name:'Sugarandsage #004 Velvet Plum',category:'Fragrance',price:149,stock:50,image:'https://images.unsplash.com/photo-1594035910387-fea47794261f?w=600&h=600&fit=crop',description:'Velvet plum and dark berries - 50ml'},
-    {id:'p002',name:'Sugarandsage #002 Coconut Blossom',category:'Fragrance',price:149,stock:50,image:'https://images.unsplash.com/photo-1541643600914-78b084683601?w=600&h=600&fit=crop',description:'Coconut blossom and vanilla - 50ml'},
-    {id:'p006',name:'Sugarandsage #006 Vanilla Sun',category:'Fragrance',price:149,stock:50,image:'https://images.unsplash.com/photo-1593487568720-3eab4c81be82?w=600&h=600&fit=crop',description:'Warm vanilla and citrus - 50ml'},
-    {id:'p005',name:'Sugarandsage #005 Sugared Velvit',category:'Fragrance',price:149,stock:50,image:'https://images.unsplash.com/photo-1593487568720-3eab4c81be82?w=600&h=600&fit=crop',description:'Velvet plum and sugared violet - 50ml'},
-    {id:'p001',name:'Sugarandsage #001 Wild Fig',category:'Fragrance',price:149,stock:50,image:'https://images.unsplash.com/photo-1594035910387-fea47794261f?w=600&h=600&fit=crop',description:'Wild fig and sandalwood - 50ml'},
-    {id:'p003',name:'Sugarandsage #003 Fynbos Dawn',category:'Fragrance',price:149,stock:50,image:'https://images.unsplash.com/photo-1594035910387-fea47794261f?w=600&h=600&fit=crop',description:'Fynbos and morning dew - 50ml'},
-    {id:'p007',name:'Rooibos Glow Mask 250ml',category:'Skincare',price:185,stock:30,image:'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=600&h=600&fit=crop',description:'Organic rooibos and kaolin - brightening'},
-    {id:'p008',name:'Vanilla Bean Sugar Scrub',category:'Body Care',price:245,stock:20,image:'https://images.unsplash.com/photo-1600857544200-b2f666a9a2ec?w=600&h=600&fit=crop',description:'Raw sugar, vanilla, shea butter'}
-  ]; }catch(e){ console.log('load failed', e); products = [{id:'p004',name:'Sugarandsage #004 Velvet Plum',category:'Fragrance',price:149,stock:50,image:'https://placehold.co/600x600/FDEBF1/E89BAD?text=Velvet+Plum',description:'Velvet plum'}]; } }
+
 function renderFilters(){document.getElementById('filters').innerHTML=categories.map(c=>`<button class="filter ${c===activeCat?'active':''}" onclick="setCat('${c}')">${c}</button>`).join('');}
 function setCat(c){activeCat=c;renderFilters();renderGrid();}
-function renderGrid(){const list=activeCat==='All'?products:products.filter(p=>p.category===activeCat);document.getElementById('grid').innerHTML=list.map(p=>`<div class="card"><img src="${p.image}" class="card-img" alt="${p.name}" onerror="this.src='https://placehold.co/600x600/FDEBF1/E89BAD?text='+encodeURIComponent(p.name)"><div class="card-body"><div class="card-cat">${p.category}</div><div class="card-name">${p.name}</div><div class="card-desc">${p.description}</div><div class="card-foot"><div class="price">R${p.price}</div><button class="add" onclick="addToCart('${p.id}')">Add</button></div></div></div>`).join('')||'<div style="grid-column:1/-1;text-align:center;padding:40px;color:#999">No products</div>';}
+
+function renderGrid(){
+  const list=activeCat==='All'?products:products.filter(p=>p.category===activeCat);
+  document.getElementById('grid').innerHTML=list.map(p=>`
+    <div class="card">
+      <div class="card-img-wrap">
+        <img src="${p.image}" class="card-img" alt="${p.name}" loading="lazy" referrerpolicy="no-referrer"
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+        <div class="card-img-fallback" style="display:none; width:100%; height:100%; align-items:center; justify-content:center; background:#FDEBF1;">${p.fallback}</div>
+      </div>
+      <div class="card-body">
+        <div class="card-cat">${p.category}</div>
+        <div class="card-name">${p.name}</div>
+        <div class="card-desc">${p.description}</div>
+        <div class="card-foot"><div class="price">R${p.price}</div><button class="add" onclick="addToCart('${p.id}')">Add</button></div>
+      </div>
+    </div>`).join('')||'<div style="grid-column:1/-1;text-align:center;padding:40px;color:#999">No products</div>';
+}
+
 function saveCart(){localStorage.setItem('ss_cart',JSON.stringify(cart));document.getElementById('cartCount').textContent=cart.reduce((s,i)=>s+i.qty,0);}
 function addToCart(id){const p=products.find(x=>x.id===id);const ex=cart.find(x=>x.id===id);if(ex)ex.qty++;else cart.push({id:p.id,name:p.name,price:p.price,image:p.image,qty:1});saveCart();renderCart();toggleCart(true);}
 function updateQty(id,d){const it=cart.find(x=>x.id===id);if(!it)return;it.qty+=d;if(it.qty<1)cart=cart.filter(x=>x.id!==id);saveCart();renderCart();}
-function renderCart(){const el=document.getElementById('cartItems');if(cart.length===0){el.innerHTML='<div class="empty">Your cart is empty<br><br><a href="#products" onclick="toggleCart()" class="btn">Shop now</a></div>';}else{el.innerHTML=cart.map(i=>`<div class="cart-item"><img src="${i.image}"><div style="flex:1"><div style="font-weight:600;font-size:14px">${i.name}</div><div style="font-size:13px;color:#666">R${i.price} x ${i.qty}</div><div class="qty"><button onclick="updateQty('${i.id}',-1)">-</button><span>${i.qty}</span><button onclick="updateQty('${i.id}',1)">+</button></div></div></div>`).join('');}updateTotals();}
+function renderCart(){const el=document.getElementById('cartItems');if(cart.length===0){el.innerHTML='<div class="empty">Your cart is empty<br><br><a href="#products" onclick="toggleCart()" class="btn">Shop now</a></div>';}else{el.innerHTML=cart.map(i=>`<div class="cart-item"><img src="${i.image}" referrerpolicy="no-referrer"><div style="flex:1"><div style="font-weight:600;font-size:14px">${i.name}</div><div style="font-size:13px;color:#666">R${i.price} x ${i.qty}</div><div class="qty"><button onclick="updateQty('${i.id}',-1)">-</button><span>${i.qty}</span><button onclick="updateQty('${i.id}',1)">+</button></div></div></div>`).join('');}updateTotals();}
 function updateTotals(){const sub=cart.reduce((s,i)=>s+i.price*i.qty,0);const del=parseInt(document.getElementById('delivery').value||0);document.getElementById('subtotal').textContent='R'+sub;document.getElementById('total').textContent='R'+(sub+del);}
 function toggleCart(force){const d=document.getElementById('drawer'),o=document.getElementById('overlay');const isOpen=d.classList.contains('open');if(force===true||!isOpen){d.classList.add('open');o.classList.add('show');renderCart();}else{d.classList.remove('open');o.classList.remove('show');}}
 async function checkoutYoco(){
@@ -112,7 +142,10 @@ async function checkoutYoco(){
 }
 function setupYocoPage(){const cur=localStorage.getItem('yoco_payment_page')||'';const url=prompt('Yoco Payment Page link:',cur);if(url!==null){localStorage.setItem('yoco_payment_page',url);alert('Saved: '+url);}}
 function checkoutWhatsApp(){if(cart.length===0)return alert('Cart empty');const total=cart.reduce((s,i)=>s+i.price*i.qty,0)+parseInt(document.getElementById('delivery').value||0);const lines=cart.map(i=>`• ${i.qty}x ${i.name} - R${i.price*i.qty}`).join('%0A');const del=document.getElementById('delivery').selectedOptions[0].text;const msg=`Hi Sugar & Sage! I'd like to order:%0A${lines}%0A%0ADelivery: ${del}%0ATotal: R${total}`;window.open(`https://wa.me/27700000000?text=${msg}`,'_blank');}
-loadProducts();renderFilters();renderGrid();saveCart();
+
+renderFilters();renderGrid();saveCart();
+// Clear old buggy localStorage products that caused Edge vs Chrome difference
+localStorage.removeItem('ss_products');
 </script>
 </body>
 </html>
