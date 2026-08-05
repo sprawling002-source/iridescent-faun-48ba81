@@ -1,1 +1,0 @@
-exports.handler = async (e)=>{ try{const b=JSON.parse(e.body); return {statusCode:200, body: JSON.stringify({redirectUrl:null})}}catch(err){return {statusCode:200, body: JSON.stringify({redirectUrl:null})}} }
